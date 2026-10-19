@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AuraCare AI — Intelligent Healthcare Assistant & Symptom Triage</title>
+  <meta name="description" content="AI-powered medical assistant for preliminary symptom triaging, health guidance, specialist recommendations, and emergency alerts.">
+  
+  <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Markdown Parser (Marked.js) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="dark-theme">
+  <!-- Emergency Critical Banner (Hidden by default, triggered on severe signs) -->
+  <div id="emergency-banner" class="emergency-banner hidden" role="alert">
+    <div class="emergency-content">
+      <div class="emergency-icon-wrap">
+        <i class="fa-solid fa-triangle-exclamation pulse-icon"></i>
+      </div>
+      <div class="emergency-text">
+        <strong id="emergency-title">URGENT MEDICAL ALERT DETECTED</strong>
+        <p id="emergency-desc">Your symptoms may indicate a critical emergency. Please call local emergency services immediately or visit an ER.</p>
+      </div>
+      <div class="emergency-actions">
+        <a href="tel:911" class="btn-emergency-call" id="btn-call-911">
+          <i class="fa-solid fa-phone-volume"></i> Call 911 / 112
+        </a>
+        <button id="btn-dismiss-emergency" class="btn-icon-dismiss" title="Dismiss banner">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Medical Consent / Disclaimer Banner -->
+  <div id="disclaimer-bar" class="disclaimer-bar">
+    <div class="disclaimer-content">
+      <i class="fa-solid fa-shield-heart disclaimer-icon"></i>
+      <span><strong>Educational Notice:</strong> AuraCare provides clinical health education and symptom triaging, not definitive medical diagnoses. Always consult a licensed physician for medical conditions.</span>
+      <button id="btn-accept-disclaimer" class="btn-accept-disclaimer">I Understand</button>
+    </div>
+  </div>
+
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-logo">
+            <i class="fa-solid fa-notes-medical"></i>
+            <span class="logo-pulse"></span>
+          </div>
+          <div class="brand-info">
+            <span class="brand-name">AuraCare<span class="brand-accent">.AI</span></span>
+            <span class="brand-tagline">Clinical Assistant</span>
+          </div>
+        </div>
+        <button id="btn-toggle-sidebar" class="mobile-only-btn" title="Toggle menu">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+
+      <div class="sidebar-section">
+        <button id="btn-new-chat" class="btn-new-chat">
+          <i class="fa-solid fa-plus"></i> New Consultation
+        </button>
+      </div>
+
+      <div class="sidebar-nav">
+        <div class="nav-label">Core Services</div>
+        <button class="nav-item active" id="nav-chat">
+          <i class="fa-regular fa-comments"></i> Symptom Triage
+        </button>
+        <button class="nav-item" id="nav-specialists">
+          <i class="fa-solid fa-user-doctor"></i> Find Specialist
+        </button>
+        <button class="nav-item" id="nav-bookings">
+          <i class="fa-regular fa-calendar-check"></i> My Appointments
+          <span class="badge" id="booking-count-badge">0</span>
+        </button>
+      </div>
+
+      <div class="sidebar-section quick-triage-guide">
+        <div class="guide-card">
+          <div class="guide-header">
+            <i class="fa-solid fa-kit-medical"></i>
+            <span>Emergency Guidelines</span>
+          </div>
+          <p class="guide-text">Chest pain, stroke signs (FAST), severe bleeding, or sudden paralysis require immediate in-person emergency care.</p>
+          <a href="tel:911" class="guide-call-link">
+            <i class="fa-solid fa-phone"></i> Emergency: 911 / 112
+          </a>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="system-status-indicator">
+          <span class="status-dot online"></span>
+          <span class="status-label" id="status-text">Engine Ready</span>
+        </div>
+        <button id="btn-open-settings" class="btn-settings" title="API Key & Settings">
+          <i class="fa-solid fa-gear"></i>
+          <span id="api-key-indicator" class="api-status-badge missing">No Key</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-container">
+      <!-- Top Application Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <button id="btn-mobile-menu" class="btn-icon mobile-only-btn" title="Open Menu">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="header-title-wrap">
+            <h1 class="header-title">Virtual Clinical Consultation</h1>
+            <span class="header-sub">Empowered by OpenAI GPT-4o with Safety Guardrails</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <button id="btn-export-chat" class="btn-secondary" title="Export Consultation Summary">
+            <i class="fa-solid fa-file-arrow-down"></i>
+            <span>Export Notes</span>
+          </button>
+
+          <button id="btn-theme-toggle" class="btn-icon" title="Toggle Light/Dark Theme">
+            <i class="fa-solid fa-sun" id="theme-icon"></i>
+          </button>
+
+          <button id="btn-clear-chat" class="btn-icon danger-hover" title="Reset Session">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Chat Feed View -->
+      <div class="chat-viewport" id="chat-viewport">
+        <!-- Welcome Screen (Visible before conversation starts) -->
+        <div class="welcome-container" id="welcome-container">
+          <div class="welcome-badge">
+            <i class="fa-solid fa-shield-virus"></i> Clinical AI Assistant
+          </div>
+          <h2 class="welcome-heading">How can I assist your health today?</h2>
+          <p class="welcome-sub">
+            Describe your symptoms or ask a health inquiry. AuraCare provides evidence-based educational triage, specialist recommendations, and wellness guidance.
+          </p>
+
+          <!-- Quick Action Prompt Tiles -->
+          <div class="prompt-grid">
+            <div class="prompt-card" data-prompt="I have had a throbbing headache on the right side with nausea since yesterday. What could this be and what should I monitor?">
+              <div class="prompt-card-icon"><i class="fa-solid fa-head-side-virus"></i></div>
+              <div class="prompt-card-info">
+                <h3>Symptom Checker</h3>
+                <p>Throbbing headache & nausea for 24h</p>
+              </div>
+            </div>
+
+            <div class="prompt-card" data-prompt="What are the common side effects and safety considerations of taking Ibuprofen with high blood pressure medications?">
+              <div class="prompt-card-icon"><i class="fa-solid fa-pills"></i></div>
+              <div class="prompt-card-info">
+                <h3>Medication Advisory</h3>
+                <p>NSAID & blood pressure interactions</p>
+              </div>
+            </div>
+
+            <div class="prompt-card" data-prompt="My routine blood work shows elevated fasting glucose (115 mg/dL) and LDL cholesterol (145 mg/dL). Can you explain what these mean in simple terms?">
+              <div class="prompt-card-icon"><i class="fa-solid fa-flask-vial"></i></div>
+              <div class="prompt-card-info">
+                <h3>Lab Report Explainer</h3>
+                <p>Understand blood sugar & cholesterol</p>
+              </div>
+            </div>
+
+            <div class="prompt-card" data-prompt="I've been feeling persistent lower back stiffness radiating to my right hip for 3 weeks. What specialist should I consult?">
+              <div class="prompt-card-icon"><i class="fa-solid fa-bone"></i></div>
+              <div class="prompt-card-info">
+                <h3>Find Specialist</h3>
+                <p>Lower back pain & sciatica triage</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Chat Messages List -->
+        <div class="chat-messages" id="chat-messages">
+          <!-- Messages will be dynamically rendered here -->
+        </div>
+
+        <!-- Typing / Generation Indicator -->
+        <div class="typing-indicator hidden" id="typing-indicator">
+          <div class="typing-avatar">
+            <i class="fa-solid fa-notes-medical"></i>
+          </div>
+          <div class="typing-bubble">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <span class="typing-text">Analyzing clinical context...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Triage Tags Bar -->
+      <div class="quick-tags-container">
+        <span class="quick-tag-label"><i class="fa-solid fa-bolt"></i> Quick Topics:</span>
+        <button class="quick-tag" data-tag="Fever and chills for 2 days">Fever & Chills</button>
+        <button class="quick-tag" data-tag="Persistent dry cough and fatigue">Dry Cough</button>
+        <button class="quick-tag" data-tag="Red itchy rash on forearms">Skin Rash</button>
+        <button class="quick-tag" data-tag="Sharp knee pain after running">Knee Injury</button>
+        <button class="quick-tag" data-tag="Difficulty sleeping and racing thoughts">Anxiety & Insomnia</button>
+      </div>
+
+      <!-- Input Bar Area -->
+      <div class="chat-input-wrapper">
+        <form class="chat-input-form" id="chat-form">
+          <button type="button" class="btn-tool" id="btn-voice-input" title="Voice dictation (speech-to-text)">
+            <i class="fa-solid fa-microphone" id="mic-icon"></i>
+          </button>
+          
+          <textarea
+            id="chat-textarea"
+            class="chat-textarea"
+            placeholder="Describe your symptoms, severity, or medical question..."
+            rows="1"
+            autocomplete="off"
+            required
+          ></textarea>
+
+          <button type="submit" class="btn-send" id="btn-send" title="Send message">
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </form>
+        <div class="input-footer-note">
+          <span>AuraCare uses AI to assist health education. In a medical emergency, immediately call 911 or your local emergency number.</span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL: Settings & OpenAI API Key -->
+  <div class="modal-overlay hidden" id="settings-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-sliders"></i> System Configuration
+        </div>
+        <button class="modal-close" id="btn-close-settings">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="input-api-key">OpenAI API Key <span class="required">*</span></label>
+          <div class="input-password-wrap">
+            <input type="password" id="input-api-key" placeholder="sk-proj-..." autocomplete="off">
+            <button type="button" class="btn-toggle-pw" id="btn-toggle-pw">
+              <i class="fa-regular fa-eye" id="pw-eye-icon"></i>
+            </button>
+          </div>
+          <small class="helper-text">Your API key is stored securely in your local browser session and never sent to any third party other than OpenAI.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="select-model">AI Model Selection</label>
+          <select id="select-model" class="custom-select">
+            <option value="gpt-4o-mini">GPT-4o Mini (Fast, Cost-Effective & Accurate - Recommended)</option>
+            <option value="gpt-4o">GPT-4o (State-of-the-Art Clinical Reasoning)</option>
+            <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Legacy)</option>
+            <option value="google/gemma-4-31b-it:free">Gemma 4 31B (Free via OpenRouter)</option>
+            <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet (via OpenRouter)</option>
+            <option value="meta-llama/llama-3.1-70b-instruct">Llama 3.1 70B (via OpenRouter)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="input-base-url">API Base URL <span class="required">*</span></label>
+          <input type="text" id="input-base-url" placeholder="https://api.openai.com/v1" autocomplete="off">
+          <small class="helper-text">Use <code>https://api.openai.com/v1</code> for OpenAI or <code>https://openrouter.ai/api/v1</code> for OpenRouter.</small>
+        </div>
+
+        <div class="form-group">
+          <label>Emergency Triage Protocol</label>
+          <div class="status-box active">
+            <i class="fa-solid fa-shield-check"></i>
+            <span>Active: Real-time regex & pattern scan for acute cardiac, stroke, and trauma indicators.</span>
+          </div>
+        </div>
+
+        <div id="settings-feedback" class="feedback-msg hidden"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="btn-cancel-settings">Cancel</button>
+        <button class="btn-primary" id="btn-save-settings">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Specialists Directory & Doctor Appointment Booking -->
+  <div class="modal-overlay hidden" id="specialist-modal">
+    <div class="modal-card modal-large">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-calendar-plus"></i> Schedule Clinical Consultation
+        </div>
+        <button class="modal-close" id="btn-close-specialist">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- View 1: Specialty & Doctor Browser -->
+        <div id="specialist-browse-view">
+          <p class="modal-subtext">Choose a specialized department and book an immediate appointment with certified clinicians.</p>
+          <div class="specialist-grid" id="specialist-grid">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- View 2: Booking Form -->
+        <div id="specialist-form-view" class="hidden">
+          <button class="btn-back" id="btn-back-to-specialists">
+            <i class="fa-solid fa-arrow-left"></i> Back to Specialties
+          </button>
+          
+          <div class="selected-doctor-banner" id="selected-doc-card">
+            <!-- Selected doctor card -->
+          </div>
+
+          <form id="booking-form" class="booking-form">
+            <div class="form-group">
+              <label for="patient-name">Patient Full Name <span class="required">*</span></label>
+              <input type="text" id="patient-name" placeholder="e.g. John Doe" required>
+            </div>
+
+            <div class="form-group">
+              <label for="appointment-slot">Select Consultation Time Slot <span class="required">*</span></label>
+              <select id="appointment-slot" class="custom-select" required>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="patient-notes">Brief Symptom Summary / Clinical Notes</label>
+              <textarea id="patient-notes" rows="3" placeholder="Describe symptoms or reasons for consultation..."></textarea>
+            </div>
+
+            <button type="submit" class="btn-primary btn-block">Confirm Appointment Booking</button>
+          </form>
+        </div>
+
+        <!-- View 3: Booking Success Card -->
+        <div id="specialist-success-view" class="hidden booking-success-card">
+          <div class="success-icon-wrap">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <h3>Consultation Confirmed!</h3>
+          <p>Your appointment has been registered in the clinic system.</p>
+          <div class="booking-receipt" id="booking-receipt">
+            <!-- Receipt details injected -->
+          </div>
+          <button class="btn-primary" id="btn-finish-booking">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: My Appointments List -->
+  <div class="modal-overlay hidden" id="my-appointments-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-clipboard-list"></i> My Scheduled Appointments
+        </div>
+        <button class="modal-close" id="btn-close-appointments">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="appointments-list-container" class="appointments-list">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
